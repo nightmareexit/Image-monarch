@@ -11,12 +11,18 @@ export async function onRequestGet(context) {
 
 export async function onRequestPost(context) {
   try {
-    // リクエストボディが空または不正なJSONの場合のエラー対策
+    // 送られてきた生データをそのままテキストとして取得
+    const rawText = await context.request.text();
     let body;
+    
     try {
-      body = await context.request.json();
+      body = JSON.parse(rawText);
     } catch (e) {
-      return Response.json({ error: "Invalid request body" }, { status: 400 });
+      // 失敗した理由と、実際に何が送られてきたかを返す
+      return Response.json({ 
+        error: "Invalid request body", 
+        receivedText: rawText 
+      }, { status: 400 });
     }
 
     const { type, title, content, author } = body || {};
