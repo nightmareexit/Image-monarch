@@ -5,4 +5,4 @@ pages_build_output_dir = "."
 [[d1_databases]]
 binding = "DB"
 database_name = "image-monarch-db"
-database_id = "あなたのD1データベースIDに書き換えてね"
+database_id = "5cdb065d-eeb3-4836-babf-cc61ee86ad6e"
