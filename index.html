@@ -1,1 +1,273 @@
-<h1>hello all god ;)</h1>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>イメージモナーク - コミュニティサイト</title>
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --card-bg: #181b22;
+            --accent: #6366f1;
+            --text: #e2e8f0;
+            --text-sub: #94a3b8;
+            --border: #2d3748;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text);
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { margin: 0; font-size: 1.5rem; color: #fff; letter-spacing: 2px; }
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .nav-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .tab-btn, .action-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .tab-btn.active, .action-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+        .post-form-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+        .post-form-card h2 { margin-top: 0; font-size: 1.2rem; }
+        input, textarea, select {
+            width: 100%;
+            background: #0b0d10;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.8rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            box-sizing: border-box;
+        }
+        /* 作品一覧グリッド */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .card-type {
+            font-size: 0.75rem;
+            background: #2a2f3d;
+            color: #a5b4fc;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            width: fit-content;
+            margin-bottom: 0.5rem;
+        }
+        .card h3 { margin: 0.3rem 0; font-size: 1.1rem; }
+        .card .author { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 0.8rem; }
+        
+        /* 小説用横スクロールビューア仕様 */
+        .novel-content {
+            background: #0b0d10;
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 6px;
+            height: 180px;
+            writing-mode: vertical-rl;
+            overflow-x: auto;
+            font-size: 0.95rem;
+            line-height: 1.8;
+            letter-spacing: 0.05em;
+        }
+        .char-content {
+            background: #0b0d10;
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 6px;
+            height: 100px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            color: var(--text-sub);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>IMAGE MONARCH</h1>
+        <button class="action-btn" onclick="toggleForm()">投稿する</button>
+    </header>
+
+    <div class="container">
+        <!-- 投稿フォーム（初期は非表示） -->
+        <div id="postFormCard" class="post-form-card" style="display: none;">
+            <h2>作品を投稿する</h2>
+            <form id="uploadForm">
+                <label>種類</label>
+                <select id="postType" onchange="updateFormLabels()">
+                    <option value="character">キャラ誌</option>
+                    <option value="novel">小説 / ストーリー</option>
+                </select>
+
+                <label id="titleLabel">キャラ名</label>
+                <input type="text" id="postTitle" required placeholder="例: アリシア・ライト">
+
+                <label id="contentLabel">詳細</label>
+                <textarea id="postContent" rows="4" required placeholder="設定やプロフィールを記入..."></textarea>
+
+                <label>作者名</label>
+                <input type="text" id="postAuthor" required placeholder="あなたの名前">
+
+                <button type="submit" class="action-btn" style="width: 100%;">送信して公開する</button>
+            </form>
+        </div>
+
+        <!-- タブ切り替え -->
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="filterPosts('all', this)">すべて</button>
+            <button class="tab-btn" onclick="filterPosts('character', this)">キャラ誌</button>
+            <button class="tab-btn" onclick="filterPosts('novel', this)">小説</button>
+        </div>
+
+        <!-- 作品一覧表示エリア -->
+        <div id="postsGrid" class="grid">
+            <p style="color: var(--text-sub);">読み込み中...</p>
+        </div>
+    </div>
+
+    <script>
+        let allPosts = [];
+
+        // フォームの表示切り替え
+        function toggleForm() {
+            const form = document.getElementById('postFormCard');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // フォームのラベル変更
+        function updateFormLabels() {
+            const type = document.getElementById('postType').value;
+            if (type === 'character') {
+                document.getElementById('titleLabel').innerText = 'キャラ名';
+                document.getElementById('contentLabel').innerText = '詳細・プロフィール';
+            } else {
+                document.getElementById('titleLabel').innerText = '小説の名前';
+                document.getElementById('contentLabel').innerText = '小説の内容（横スクロールで読まれます）';
+            }
+        }
+
+        // 記事一覧を取得
+        async function fetchPosts() {
+            try {
+                const res = await fetch('/api/posts');
+                allPosts = await res.json();
+                displayPosts(allPosts);
+            } catch (err) {
+                document.getElementById('postsGrid').innerHTML = '<p style="color: red;">データを取得できませんでした。</p>';
+            }
+        }
+
+        // 画面にカードを描画
+        function displayPosts(posts) {
+            const grid = document.getElementById('postsGrid');
+            if (posts.length === 0) {
+                grid.innerHTML = '<p style="color: var(--text-sub);">まだ作品が投稿されていません。</p>';
+                return;
+            }
+
+            grid.innerHTML = posts.map(p => `
+                <div class="card">
+                    <div>
+                        <div class="card-type">${p.type === 'character' ? 'キャラ誌' : '小説'}</div>
+                        <h3>${escapeHtml(p.title)}</h3>
+                        <div class="author">作者: ${escapeHtml(p.author)}</div>
+                        ${p.type === 'novel' 
+                            ? `<div class="novel-content">${escapeHtml(p.content)}</div>`
+                            : `<div class="char-content">${escapeHtml(p.content)}</div>`
+                        }
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // タブフィルタリング
+        function filterPosts(type, btn) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            if (type === 'all') {
+                displayPosts(allPosts);
+            } else {
+                displayPosts(allPosts.filter(p => p.type === type));
+            }
+        }
+
+        // 投稿送信処理
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                type: document.getElementById('postType').value,
+                title: document.getElementById('postTitle').value,
+                content: document.getElementById('postContent').value,
+                author: document.getElementById('postAuthor').value
+            };
+
+            const res = await fetch('/api/posts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                document.getElementById('uploadForm').reset();
+                toggleForm();
+                fetchPosts();
+            } else {
+                alert('投稿に失敗しました。');
+            }
+        });
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        // 初回ロード
+        fetchPosts();
+    </script>
+</body>
+</html>
